@@ -59,6 +59,7 @@ echo '  ]}' >> $BUILDFILE
 rm -rf /tmp/tests
 
 apt-get remove --purge -y ${BUILD_DEPS}
+apt-get remove --purge -y libgtest-dev
 apt-get autoremove --purge -y
 apt-get clean
 
