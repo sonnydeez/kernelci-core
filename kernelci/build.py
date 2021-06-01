@@ -787,8 +787,6 @@ class Step:
     def _get_make_opts(self, opts, make_path):
         env = self._meta.get('bmeta', 'environment')
         make_opts = env['make_opts'].copy()
-        if opts:
-            make_opts.update(opts)
 
         arch = env['arch']
         make_opts['ARCH'] = arch
@@ -818,6 +816,9 @@ class Step:
         if self._output_path and (self._output_path != make_path):
             # due to kselftest Makefile issues, O= cannot be a relative path
             make_opts['O'] = format(os.path.abspath(self._output_path))
+
+        if opts:
+            make_opts.update(opts)
 
         return make_opts
 
@@ -983,6 +984,7 @@ class EnvironmentData(Step):
             'platform': platform_data,
             'use_ccache': shell_cmd("which ccache > /dev/null", True),
             'make_opts': make_opts,
+            'build_perf': build_env.get_build_perf(arch)
         }
         return self._add_run_step(True)
 
@@ -1383,6 +1385,55 @@ class MakeDeviceTrees(Step):
         dtb_list = self._install_dtbs(verbose)
         self._add_artifact_contents('directory', 'dtbs', dtb_list)
         return super().install(verbose)
+
+
+class MakePerf(Step):
+
+    @property
+    def name(self):
+        return 'perf'
+
+    def is_enabled(self):
+        """Check whether the perf is enabled in .config
+
+        Return True if CONFIG_PERF_EVENTS is in kernel config and build_perf
+        is enabled in enviromnent, or False otherwise.
+        """
+        env = self._meta.get('bmeta', 'environment')
+        return self._kernel_config_enabled('PERF_EVENTS') and env['build_perf']
+
+    def run(self, jopt=None, verbose=False, opts=None):
+        """Make the perf tool
+
+        Make the kernel perf tool and produce a binary.
+
+        *jopt* is the `make -j` option which will default to `nproc + 2`
+        *verbose* is whether the build output should be shown
+        """
+        # requires output to be in tools/perf so overwrite it here.
+        opts = {
+            'O': '',
+        }
+        res = self._make('perf', jopt, verbose, opts, 'tools/perf')
+        return self._add_run_step(res, jopt)
+
+    def install(self, verbose=False):
+        """Install the perf binary
+
+        Install the perf binary
+
+        *verbose* is whether the build output should be shown
+        """
+        perf = os.path.join(self._kdir, 'tools/perf/perf')
+
+        res = os.path.exists(perf)
+        if res:
+            cc = self._meta.get('bmeta', 'environment', 'cross_compile')
+            shell_cmd("{cc}strip {target}".format(cc=cc, target=perf))
+            base = self._install_file(perf, verbose=verbose)
+            self._add_artifact_contents('binary', base, ['perf'])
+
+        return super().install(verbose, res)
 
 
 class MakeSelftests(Step):
