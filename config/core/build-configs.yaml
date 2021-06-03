@@ -241,7 +241,7 @@ build_environments:
   clang-12:
     cc: clang
     cc_version: 12
-    arch_params:
+    arch_params: &clang_12_arch_params
       <<: *clang_arch_params
       riscv:
         <<: *riscv_params
@@ -250,6 +250,11 @@ build_environments:
           LLVM_IAS: '1'
           LD: 'riscv64-linux-gnu-ld'
 
+  clang-13:
+    cc: clang
+    cc_version: 13
+    arch_params:
+      <<: *clang_12_arch_params
 
 # Default config with full build coverage
 build_configs_defaults:
@@ -806,10 +811,38 @@ build_configs:
     tree: mainline
     branch: 'master'
     variants:
-      gcc-8: *default_gcc-8
+      gcc-8:
+        build_environment: gcc-8
+        architectures:
+          arm: *arm_defconfig
+          arm64: *arm64_defconfig
+          x86_64: *x86_64_defconfig
       clang-10:
         build_environment: clang-10
-        architectures: *arch_clang_configs
+        architectures:
+          arm: *arm_defconfig
+          arm64: *arm64_defconfig
+          x86_64: *x86_64_defconfig
+      chromeos-configs: &chromeos_configs
+        build_environment: clang-13
+        architectures:
+            arm:
+              base_defconfig: 'cros://chromeos-5.10/armel/chromiumos-arm.flavour.config'
+              extra_configs:
+                - 'cros://chromeos-5.10/armel/chromiumos-rockchip.flavour.config'
+            arm64:
+              base_defconfig: 'cros://chromeos-5.10/arm64/chromiumos-arm64.flavour.config'
+              extra_configs:
+                - 'cros://chromeos-5.10/arm64/chromiumos-mediatek.flavour.config'
+                - 'cros://chromeos-5.10/arm64/chromiumos-qualcomm.flavour.config'
+                - 'cros://chromeos-5.10/arm64/chromiumos-rockchip64.flavour.config'
+            x86_64:
+              base_defconfig: 'cros://chromeos-5.10/x86_64/chromiumos-x86_64.flavour.config'
+              extra_configs:
+                - 'cros://chromeos-5.10/x86_64/chromeos-amd-stoneyridge.flavour.config'
+                - 'cros://chromeos-5.10/x86_64/chromeos-intel-denverton.flavour.config'
+                - 'cros://chromeos-5.10/x86_64/chromeos-intel-pineview.flavour.config'
+
 
   media:
     tree: media
@@ -875,6 +908,10 @@ build_configs:
             filters:
               - passlist:
                   defconfig: *riscv_clang_configs
+
+      # ChromeOS configs
+      chromeos_configs:
+        <<: *&chromeos_configs
 
   next_pending-fixes:
     tree: next
