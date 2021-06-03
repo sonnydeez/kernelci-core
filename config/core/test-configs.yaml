@@ -310,6 +310,9 @@ test_plans:
             - 'defconfig+virtualvideo'
             - 'multi_v7_defconfig+virtualvideo'
 
+  lc-compliance:
+    rootfs: debian_buster-libcamera_ramdisk
+    pattern: 'lc-compliance/{category}-{method}-{protocol}-{rootfs}-lc-compliance-template.jinja2'
 
 device_default_filters:
 
@@ -2086,6 +2089,7 @@ test_configs:
       - baseline
       - baseline-nfs
       - cros-ec
+      - lc-compliance
       - sleep
       - v4l2-compliance-uvc
 
